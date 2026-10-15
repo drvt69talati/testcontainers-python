@@ -49,3 +49,20 @@ DockerCompose(".", docker_command_path="podman")
 ```
 
 Note that Podman does not support host port ranges (`published: "5000-5999"`) in compose files.
+
+## kosa8
+
+[kosa8](https://kosa8.com) runs containers inside a local microVM and serves a Docker-compatible API on a Unix socket. Start the daemon, point `DOCKER_HOST` at the socket and disable Ryuk:
+
+```bash
+kosa8 daemon start
+export DOCKER_HOST="unix://${HOME}/.kosa8/run/kosa8.sock"
+export TESTCONTAINERS_RYUK_DISABLED=true
+```
+
+Ryuk has to be disabled because it bind-mounts the Docker socket, and kosa8 does not support bind mounts (`-v`/`--volume`). Without Ryuk, containers are still removed when `stop()` runs (for example at the end of a `with` block), but a test process that crashes can leave them running; `docker rm -f` cleans them up.
+
+Known limitations:
+
+- Bind mounts are not supported.
+- Copying files into a container (`PUT /containers/{id}/archive`) is not supported yet, so modules that do this at startup fail, for example `KafkaContainer`.
